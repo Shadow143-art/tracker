@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.tracker.app',
+  appId: 'com.shadow143.tracker.v2',
   appName: 'Tracker',
   webDir: 'dist',
   server: {
