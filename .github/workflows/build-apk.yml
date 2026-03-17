@@ -35,9 +35,14 @@ jobs:
 
       - name: Add Android Platform
         run: |
-          if [ ! -f "android/gradlew" ]; then
+          if [ ! -d "android/app/src/main" ]; then
+            rm -rf android
             npx cap add android
           fi
+
+      - name: Create assets directory
+        run: |
+          mkdir -p android/app/src/main/assets
 
       - name: Sync Capacitor
         run: npx cap sync android
