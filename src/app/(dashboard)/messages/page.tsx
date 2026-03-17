@@ -110,35 +110,47 @@ export default function MessagesPage() {
     };
   }, [initialUserId, supabase]);
 
-  const handleSelectChat = async (userToChat: any, currentUid: string = currentUser?.id) => {
+  const handleSelectChat = async (userToChat: any, currentUid?: string) => {
+    const uid = currentUid || currentUser?.id;
+    if (!uid) {
+      console.error('No current user ID available');
+      return;
+    }
+    
     setActiveChat(userToChat);
     activeChatIdRef.current = userToChat.id;
     setLoadingMessages(true);
     
     // Fetch message history
-    if (!currentUid) return;
+    try {
+      const { data: history } = await supabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${uid},receiver_id.eq.${userToChat.id}),and(sender_id.eq.${userToChat.id},receiver_id.eq.${uid})`)
+        .order('created_at', { ascending: true });
 
-    const { data: history } = await supabase
-      .from('messages')
-      .select('*')
-      .or(`and(sender_id.eq.${currentUid},receiver_id.eq.${userToChat.id}),and(sender_id.eq.${userToChat.id},receiver_id.eq.${currentUid})`)
-      .order('created_at', { ascending: true });
+      // Mark unread messages as read
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('receiver_id', uid)
+        .eq('sender_id', userToChat.id)
+        .eq('is_read', false);
 
-    // Mark unread messages as read
-    await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('receiver_id', currentUid)
-      .eq('sender_id', userToChat.id)
-      .eq('is_read', false);
-
-    setMessages(history || []);
-    setLoadingMessages(false);
+      setMessages(history || []);
+    } catch (err) {
+      console.error('Error loading messages:', err);
+    } finally {
+      setLoadingMessages(false);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeChat || !currentUser) return;
+    if (!newMessage.trim() || !activeChat || !currentUser) {
+      console.error('Cannot send message: missing data', { newMessage, activeChat, currentUser });
+      return;
+    }
 
     const msgData = {
       sender_id: currentUser.id,
@@ -156,7 +168,14 @@ export default function MessagesPage() {
     // socketRef.current?.emit('send_message', tempMsg);
 
     // 2. Persist to Supabase
-    await supabase.from('messages').insert([msgData]);
+    try {
+      const { error } = await supabase.from('messages').insert([msgData]);
+      if (error) {
+        console.error('Error sending message:', error);
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
   };
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>;
