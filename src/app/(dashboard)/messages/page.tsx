@@ -5,7 +5,8 @@ import SendIcon from '@mui/icons-material/Send';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useSearchParams, useRouter } from 'next/navigation';
-import io, { Socket } from 'socket.io-client';
+// Socket.IO disabled - server.ts removed for local dev only
+// import io, { Socket } from 'socket.io-client';
 
 export default function MessagesPage() {
   const searchParams = useSearchParams();
@@ -13,14 +14,14 @@ export default function MessagesPage() {
   const router = useRouter();
 
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [conversations, setConversations] = useState<any[]>([]); // List of people I can chat with
+  const [conversations, setConversations] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<Socket | null>(null);
+  // const socketRef = useRef<Socket | null>(null);
   const activeChatIdRef = useRef<string | null>(null);
 
   const supabase = createClient();
@@ -40,18 +41,16 @@ export default function MessagesPage() {
       if (!user) return;
       setCurrentUser(user);
 
-      // Initialize Socket
-      socketRef.current = io(window.location.origin);
-      socketRef.current.emit('join_user_room', user.id);
+      // Socket.IO disabled - server.ts removed for local dev only
+      // socketRef.current = io(window.location.origin);
+      // socketRef.current.emit('join_user_room', user.id);
+      // socketRef.current.on('receive_message', (messageData) => {
+      //   if (messageData.sender_id === activeChatIdRef.current) {
+      //     setMessages((prev) => [...prev, messageData]);
+      //   }
+      // });
 
-      socketRef.current.on('receive_message', (messageData) => {
-        // Only append to the current message list if the message is from our active chat counterpart
-        if (messageData.sender_id === activeChatIdRef.current) {
-          setMessages((prev) => [...prev, messageData]);
-        }
-      });
-
-      // Load Contacts (Accepted connections OR All if Staff for simplicity)
+      // Load Contacts
       // For this spec, we load accepted connections for chat. Staff can message anyone they've viewed.
       const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
       
@@ -106,7 +105,8 @@ export default function MessagesPage() {
     initChat();
 
     return () => {
-      if (socketRef.current) socketRef.current.disconnect();
+      // Socket.IO disabled - server.ts removed
+      // if (socketRef.current) socketRef.current.disconnect();
     };
   }, [initialUserId, supabase]);
 
@@ -152,10 +152,10 @@ export default function MessagesPage() {
     setMessages((prev) => [...prev, tempMsg]);
     setNewMessage('');
 
-    // 2. Transmit via Socket.io
-    socketRef.current?.emit('send_message', tempMsg);
+    // Socket.IO disabled - server.ts removed for local dev only
+    // socketRef.current?.emit('send_message', tempMsg);
 
-    // 3. Persist to Supabase
+    // 2. Persist to Supabase
     await supabase.from('messages').insert([msgData]);
   };
 
