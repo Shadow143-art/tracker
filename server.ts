@@ -4,9 +4,9 @@ import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = 'localhost';
 const port = parseInt(process.env.PORT || '3000', 10);
-const app = next({ dev, hostname, port });
+// Remove hostname binding in production so it binds to 0.0.0.0 and accepts all hosts
+const app = next({ dev, port });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -14,10 +14,10 @@ app.prepare().then(() => {
     try {
       const parsedUrl = parse(req.url!, true);
       await handle(req, res, parsedUrl);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error occurred handling', req.url, err);
       res.statusCode = 500;
-      res.end('internal server error');
+      res.end(`internal server error: ${err.message}\n\n${err.stack}`);
     }
   });
 
@@ -54,6 +54,6 @@ app.prepare().then(() => {
       process.exit(1);
     })
     .listen(port, () => {
-      console.log(`> Ready on http://${hostname}:${port}`);
+      console.log(`> Ready on http://0.0.0.0:${port}`);
     });
 });
